@@ -21,7 +21,7 @@ def GeneCountFinder():
 quarry_result = GeneCountFinder()
 
 ticker = 0
-outfile = open("genes_counts_of_interest.txt", "w")
+outfile = open("gene_counts_of_interest.txt", "w")
 while ticker < len(quarry_result):
     outfile.write(quarry_result[ticker] + "\n")
     ticker = ticker + 1
