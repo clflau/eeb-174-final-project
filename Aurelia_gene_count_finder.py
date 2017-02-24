@@ -11,6 +11,7 @@ def GeneCountFinder():
 			formatted_quarry_list.append(elem.replace("\n", ""))
 		print("Quarrying: " + str(formatted_quarry_list))
 		with open("/home/eeb177-student/Desktop/eeb-177/final-proj/Aurelia_RSEM_10-18-16.TMM.EXPR.100aa.matrix", "r") as express_matrix: 
+			data_list.append(express_matrix.readline())
 			for line in express_matrix:
 				for ii in formatted_quarry_list:
 					if re.search(ii, line):
@@ -20,8 +21,9 @@ def GeneCountFinder():
 
 quarry_result = GeneCountFinder()
 
+import sys
 ticker = 0
-outfile = open("gene_counts_of_interest.txt", "w")
+outfile = open("{}.txt".format(sys.argv[2]), "w")
 while ticker < len(quarry_result):
     outfile.write(quarry_result[ticker] + "\n")
     ticker = ticker + 1
