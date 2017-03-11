@@ -1,0 +1,124 @@
+---
+title: "Final Project Report"
+author: "Clive Lau"
+date: "March 10, 2017"
+output: html_document
+---
+
+# Introduction
+
+The phylum Cnidaria, which includes the corals, sea anemones, box jellies, and true jellies, is the sister clade to the bilaterians. Due to its position on the metazoan tree of life, the cnidarians can offer particular insights to major innovations in the evolution of animal complexity. Recently, the Jacobs lab and collaborators have sequenced the genome and transcriptome of the jellyfish *Aurelia sp. 1* (Gold et al., unpublished). *Aurelia* belongs to a clade of cnidarians known as the medusozoans; compared to their sister clade, the anthozoans, the medusozoans exhibit a complicated life cycle characterized by having a mobile adult life stage known as the medusa (Fig. 1). The emergence of this complicated life cycle is poorly understood, and a detailed stage-specific differential expression study is needed to parse out the genetic mechanisms for this evolutionary innovation.
+
+![Fig. 1 The life cycle of *Aurelia*](/home/eeb177-student/Desktop/eeb-177/final-proj/presentation/lifecycle.png)
+
+
+The goal of this project is to explore the *Aurelia* transcriptome to find out more about changes in the expression patterns of certain genes across the life cycle of the jellyfish. Previous Gene Ontology analyses done by the Jacobs lab have identified eight clusters of genes that are differentially expressed across the life stages of *Aurelia*. This project will focus mainly on the set of genes known as the "cluster 3" genes. The GO studies have shown that this cluster is enriched in genes associated with "nematocysts"(the stinging cells of the jellyfish), "neurotransmitter processes", "somitic sex determination", and "eye development". By taking a closer look at the cluster 3 genes, we may be able to discern some expression patterns that could explain these processes./n
+
+# Project work flow
+
+The expression counts data of all genes in the transcriptome is stored in the file "Aurelia_RSEM_10-18-16.TMM.EXPR.100aa.matrix". To extract only the cluster 3 genes, I wrote a bash script that takes in a list of gene IDs and searches within the expression counts data for those specific genes, and then outputs those genes into a new file. 
+
+```{r eval=FALSE}
+#!/bin/bash/
+
+list_of_genes=$(tail -n +2 $1 | sort | uniq)
+
+head -n 1 Aurelia_RSEM_10-18-16.TMM.EXPR.100aa.matrix | cut -c 2- > $2
+
+for gene in $list_of_genes
+	do 
+		echo $gene >> temp
+		grep -m1 $gene ./Aurelia_RSEM_10-18-16.TMM.EXPR.100aa.matrix >> $2
+done
+```
+
+After searching for the cluster 3 genes, the resulting file looks like this:
+
+```{r echo=FALSE}
+df <- read.csv("cluster3_counts.txt")
+head(df)
+```
+
+Since the gene expression counts data contains biological replicates for each of the life stages, I simplified the data by taking the average of the biological replicates for each life stage. This was accomplished with a python script:
+
+```{r eval=FALSE}
+"""
+This python code will take the Aurelia expression count data and calculate the average expression levels across
+the biological replicates of each of the life stages of Aurelia. 
+"""
+
+# First read in the file with the expression count data
+# Data should be structured as tab separated file with 19 columns
+# First column is geneID
+# Next two columns are for 'early planula'
+# Next two columns are for 'late planula'
+# Next three columns are for 'polyps'
+# Next three columns are for 'early strobila'
+# Next three columns are for 'late strobila'
+# Next three columns are for 'ephyra'
+# Final two columns are for 'juvenile'
+
+import numpy as np
+import pandas as pd
+
+file_to_open = input("Enter the name of the input file: ")
+with open(file_to_open) as expression_data:
+    expression_data.readline()
+    data_array = pd.read_csv(file_to_open, sep = "\t", header = 0)
+    
+
+e_plan_mean = data_array.iloc[ : , [0, 1]].mean(axis = 1).round(4)
+l_plan_mean = data_array.iloc[ : , [2, 3]].mean(axis = 1).round(4)
+polyp_mean = data_array.iloc[ : , [4, 5, 6]].mean(axis = 1).round(4)
+e_strob_mean = data_array.iloc[ : , [7, 8, 9]].mean(axis = 1).round(4)
+l_strob_mean = data_array.iloc[ : , [10, 11, 12]].mean(axis = 1).round(4)
+ephyra_mean = data_array.iloc[ : , [13, 14, 15]].mean(axis = 1).round(4)
+juven_mean = data_array.iloc[ : , [16, 17]].mean(axis = 1).round(4)
+
+
+mean_matrix = pd.concat([e_plan_mean, l_plan_mean, polyp_mean, e_strob_mean, l_strob_mean, ephyra_mean, juven_mean], axis = 1)
+mean_matrix.columns = ["early planula", "late planula", "polyp", "early strobila", "late strobila", "ephyra", "juvenile"]
+
+
+file_to_write_to = input("Enter the name of the file to write to: ")
+mean_matrix.to_csv(file_to_write_to, sep = '\t')
+```
+
+For data visualization, I loaded the averaged file on to R. A quick and dirty way to visualize differential gene expression data is by using a heatmap. The additional advantage of the heatmap is that the data could be clustered to help bring out subtle patterns.
+
+```{r}
+cluster3 <- read.csv("mean_cluster3_counts.csv", sep = "\t", as.is = T)
+
+rownames(cluster3) <- cluster3$X # assign gene names to row names
+cluster3 <- cluster3[, -1] 
+
+cluster3_ratios <- cluster3 / rowSums(cluster3)
+
+library(gplots)
+heatmap.2(as.matrix(cluster3_ratios), Colv = NA, dendrogram = "row", labRow = "", trace = "none")
+
+```
+
+Another way to visualize the data is to plot out the expression levels of each gene across all the life stages.
+
+```{r}
+cluster3 <- read.csv("mean_cluster3_counts.csv", sep = "\t")
+
+# format row names
+names(cluster3) <- c("Gene", "E. Planula", "L. Planula", "Polyp",
+                     "E. Strobila", "L. Strobila", "Ephyra", "Juvenile")
+
+# reshape dataframe to "long" version
+library(reshape2)
+df <- melt(cluster3, id = c("Gene"), variable.name = "Stages")
+
+library(ggplot2)
+p1 <- ggplot(df, aes(x = Stages, y = log2(value), by = Gene)) +
+  geom_line(aes(group = Gene, color = Gene), alpha = 0.2) +
+  geom_point(alpha = 0.2, aes(color = Gene, group = Gene), size = 0.5) +
+  theme(legend.position = "none") +
+  ggtitle("Cluster 3 Genes across stages")
+p1
+```
+
+
