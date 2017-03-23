@@ -46,7 +46,7 @@ mean_matrix = pd.concat([e_plan_mean, l_plan_mean, polyp_mean, e_strob_mean, l_s
 mean_matrix.columns = ["early planula", "late planula", "polyp", "early strobila", "late strobila", "ephyra", "juvenile"]
 
 
-file_to_write_to = input("Enter the name of the file to write to: ")
+file_to_write_to = "mean_" + file_to_open[:-3] + "csv"
 mean_matrix.to_csv(file_to_write_to, sep = '\t')
 
 
