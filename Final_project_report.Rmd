@@ -1,50 +1,105 @@
 ---
-title: "Final Project Report"
+title: "Exploring the Differentially Expressed Genes in the Life Stages of the Jellyfish *Aurelia*"
 author: "Clive Lau"
-date: "March 10, 2017"
-output: html_document
+geometry: margin=1in
+output:
+  pdf_document: default
+fontsize: 12pt
+bibliography: biblio.bib
+csl: methods-in-ecology-and-evolution.csl
+
 ---
+
+\begin{abstract}
+Cnidarians are a phylogenetically interesting group of organisms when it comes to the study of the evolution of animal complexity. RNA-seq has become a widely used technique to analyze the expression of developmental genes in the ontogeny of an organism. Exploration of RNA-seq data in cnidarians can yield insights and help guide future research directions in the evo-devo of the complex life cycles characteristic of this clade. In this project, a bioinformatic pipeline is developed to generate graphics that could help interpret differential gene expression data from RNA-seq. A demonstration of this pipeline is done using example genes in the jellyfish \textit{Aurelia sp. 1}.
+\end{abstract}
 
 # Introduction
 
-The phylum Cnidaria, which includes the corals, sea anemones, box jellies, and true jellies, is the sister clade to the bilaterians. Due to its position on the metazoan tree of life, the cnidarians can offer particular insights to major innovations in the evolution of animal complexity. Recently, the Jacobs lab and collaborators have sequenced the genome and transcriptome of the jellyfish *Aurelia sp. 1* (Gold et al., unpublished). *Aurelia* belongs to a clade of cnidarians known as the medusozoans; compared to their sister clade, the anthozoans, the medusozoans exhibit a complicated life cycle characterized by having a mobile adult life stage known as the medusa (Fig. 1). The emergence of this complicated life cycle is poorly understood, and a detailed stage-specific differential expression study is needed to parse out the genetic mechanisms for this evolutionary innovation.
+The phylum Cnidaria, which includes the corals, sea anemones, box jellies, and true jellies, is the sister clade to the bilaterians. Due to its position on the metazoan tree of life, the cnidarians can offer particular insights to major innovations in the evolution of animal complexity. Recently, the Jacobs lab and collaborators have sequenced the genome and transcriptome of the jellyfish *Aurelia sp. 1*. *Aurelia* belongs to a clade of cnidarians known as the medusozoans; compared to their sister clade, the anthozoans, the medusozoans exhibit a complicated life cycle characterized by having a mobile adult life stage known as the medusa (Fig. \ref{fig:cycle}). The emergence of this complicated life cycle is poorly understood, and a detailed stage-specific differential expression study is needed to parse out the genetic mechanisms for this evolutionary innovation.
 
-![Fig. 1 The life cycle of *Aurelia*](/home/eeb177-student/Desktop/eeb-177/final-proj/presentation/lifecycle.png)
+\begin{figure}[h]
+\includegraphics[width=10cm, height=10cm,keepaspectratio]{/home/eeb177-student/Desktop/eeb-177/final-proj/presentation/lifecycle.png}
+\centering
+\caption{The life cycle of \textit{Aurelia}}
+\label{fig:cycle}
+\end{figure}
+
+The goal of this project is to develop a programmatic pipeline to perform some preliminary explorations of the *Aurelia* transcriptome, with the aim to find out more about changes in the expression patterns of certain genes across the life cycle of this jellyfish. Previous analyses done by the Jacobs lab have identified eight clusters of genes that are differentially expressed across the life stages of *Aurelia*. Here I present a series of scripts in a pipeline that will enable one to broadly look at the expression characteristics of the genes in each of these clusters, as well as certain, more specific, genes of interest. All scripts are available on GitHub (https://github.com/clflau/eeb-174-final-project).
 
 
-The goal of this project is to explore the *Aurelia* transcriptome to find out more about changes in the expression patterns of certain genes across the life cycle of the jellyfish. Previous Gene Ontology analyses done by the Jacobs lab have identified eight clusters of genes that are differentially expressed across the life stages of *Aurelia*. This project will focus mainly on the set of genes known as the "cluster 3" genes. The GO studies have shown that this cluster is enriched in genes associated with "nematocysts"(the stinging cells of the jellyfish), "neurotransmitter processes", "somitic sex determination", and "eye development". By taking a closer look at the cluster 3 genes, we may be able to discern some expression patterns that could explain these processes./n
+# Graphically presenting gene expression across stages
 
-# Project work flow
+The expression counts data of all differentially expressed (DE) genes in the transcriptome is stored in the file "Aurelia_RSEM_10-18-16.TMM.EXPR.100aa.matrix". A convenient way to visualize DE gene data across life stages is to graphically present the expression levels across stages. Here I demonstrate how this can be achieved using the cluster 3 genes as an example. Previous Gene Ontology analysis done by the Jacobs Lab has shown that cluster 3 of the differentially expressed genes are enriched in "eye development" genes. To extract only the cluster 3 genes, the python script `gene_cluster_finder.py`, once executed, will prompt the user to enter the desired cluster (a number from 1 to 8), and outputs a .txt file containing a list evm gene model numbers of the genes within the desired cluster. The content of this python script is reproduced below:
+```{r, eval=FALSE, echo=TRUE}
+#####
+# This script will search the file 'Cluster_IDs.txt' with input from 
+# user for a specific gene cluster, and will output the gene evm model
+# IDs of genes within that cluster. 
+#####
 
-The expression counts data of all genes in the transcriptome is stored in the file "Aurelia_RSEM_10-18-16.TMM.EXPR.100aa.matrix". To extract only the cluster 3 genes, I wrote a bash script that takes in a list of gene IDs and searches within the expression counts data for those specific genes, and then outputs those genes into a new file. 
+clust_num = input("Enter cluster number (1 to 8): ")
+
+def gene_cluster_finder():
+	import re
+	cluster = "Clust" + clust_num
+	gene_IDs = []
+	with open("Cluster_IDs.txt") as clusterIDs:
+		for line in clusterIDs:
+			if re.search(cluster, line):
+				cluster_search = re.search(cluster + "\t*(.*)\n", line)
+				gene_IDs.append(cluster_search.group(1))
+	return gene_IDs
+
+
+gene_IDs = gene_cluster_finder()
+
+ticker = 0
+outfile = open("./data/cluster{}_genes.txt".format(str(clust_num)), "w")
+outfile.write("# Genes of interest\n")
+outfile.close()
+outfile = open("./data/cluster{}_genes.txt".format(str(clust_num)), "a")
+while ticker < len(gene_IDs):
+    outfile.write(gene_IDs[ticker] + "\n")
+    ticker = ticker + 1
+
+outfile.close()
+
+print("Results stored in ./data/cluster{}_genes.txt".format(str(clust_num)))
+```
+
+Running `gene_cluster_finder.py` to capture the cluster 3 genes will return a file in the `data` folder called `cluster3_genes.txt`. The next step is to obtain the counts data for these genes; this is done by running the bash script `Aurelia_gene_count_finder.sh`:
 
 ```{r eval=FALSE}
 #!/bin/bash/
 
-list_of_genes=$(tail -n +2 $1 | sort | uniq)
+#####
+# This bash script takes 2 arguments. The first argument is the name 
+# of the file that contains the list of evm model IDs to use as query;
+# the second argument is the name of the output file on which the
+# results of this script will write.
+#####
 
-head -n 1 Aurelia_RSEM_10-18-16.TMM.EXPR.100aa.matrix | cut -c 2- > $2
+list_of_genes=$(tail -n +2 ./data/$1 |cut -d "," -f 1 | sort | uniq)
+
+head -n 1 Aurelia_RSEM_10-18-16.TMM.EXPR.100aa.matrix | cut -c 2- > ./data/$2
 
 for gene in $list_of_genes
 	do 
-		echo $gene >> temp
-		grep -m1 $gene ./Aurelia_RSEM_10-18-16.TMM.EXPR.100aa.matrix >> $2
+		echo $gene 
+		grep -m1 $gene ./Aurelia_RSEM_10-18-16.TMM.EXPR.100aa.matrix >> ./data/$2
 done
+
+echo "Results stored in ./data/$2"
 ```
 
-After searching for the cluster 3 genes, the resulting file looks like this:
-
-```{r echo=FALSE}
-df <- read.csv("cluster3_counts.txt")
-head(df)
-```
-
-Since the gene expression counts data contains biological replicates for each of the life stages, I simplified the data by taking the average of the biological replicates for each life stage. This was accomplished with a python script:
+Since the gene expression counts data contains biological replicates for each of the life stages, a simple way to aggregate the data is by taking the average of the biological replicates for each life stage. This can be accomplished with the python script `replicate_averager.py`:
 
 ```{r eval=FALSE}
 """
-This python code will take the Aurelia expression count data and calculate the average expression levels across
-the biological replicates of each of the life stages of Aurelia. 
+This python code will take the Aurelia expression count data 
+and calculate the average expression levels across the biological
+replicates of each of the life stages of Aurelia. 
 """
 
 # First read in the file with the expression count data
@@ -65,8 +120,8 @@ file_to_open = input("Enter the name of the input file: ")
 with open(file_to_open) as expression_data:
     expression_data.readline()
     data_array = pd.read_csv(file_to_open, sep = "\t", header = 0)
-    
 
+    
 e_plan_mean = data_array.iloc[ : , [0, 1]].mean(axis = 1).round(4)
 l_plan_mean = data_array.iloc[ : , [2, 3]].mean(axis = 1).round(4)
 polyp_mean = data_array.iloc[ : , [4, 5, 6]].mean(axis = 1).round(4)
@@ -80,45 +135,230 @@ mean_matrix = pd.concat([e_plan_mean, l_plan_mean, polyp_mean, e_strob_mean, l_s
 mean_matrix.columns = ["early planula", "late planula", "polyp", "early strobila", "late strobila", "ephyra", "juvenile"]
 
 
-file_to_write_to = input("Enter the name of the file to write to: ")
+file_to_write_to = file_to_open[0:7] + 
+  "mean_" + file_to_open[7:-3] + "csv"
 mean_matrix.to_csv(file_to_write_to, sep = '\t')
+
+print("Results stored in " + file_to_open[0:7] + "mean_" +
+        file_to_open[7:-3] + "csv")
 ```
 
-For data visualization, I loaded the averaged file on to R. A quick and dirty way to visualize differential gene expression data is by using a heatmap. The additional advantage of the heatmap is that the data could be clustered to help bring out subtle patterns.
+The output of this `replicate_averager.py` is a `.csv` file containing the average per stage expression counts for each gene. At this point, the data is ready to be visualized graphically by a lineplot. This is done by loading the data into `R`. The function `lineplot_stages()` is stored in the `R` script file `lineplot_stages.R`. Because some genes are much more highly expressed than others, this function log transforms the gene count data and center the data around the gene median using the equation:
+
+\begin{equation}
+ x_{ij, centered} = log_{2}(x_{ij} + 1) - log{2}(m_{i})
+\end{equation}
+
+where $x_{ij}$ is the replicate-average gene count for gene $i$ at stage $j$ and $m_{i}$ is the median of the replicate-average gene count for gene $i$. Since $log_{2}(0)$ is undefined, $1$ is added to all the data before the log transformation. Since we are only interested in the relative changes of expression across the stages, this procedure does not alter the interpretations of the results. The content of `lineplot_stages()` is reproduced below:
+
+```{r, echo = T}
+source("lineplot_stages.R", echo = TRUE, max.deparse.length = 10000)
+
+```
+
+Calling `lineplot_stages()` on the cluster 3 genes will produce a line plot for each of the genes. Additionally, the mean expression across stages of all the graphed genes is drawn as a black line:
+```{r}
+lineplot_stages("./data/mean_cluster3_counts.csv", "Cluster 3")
+```
+
+Line plots for all eight clusters are shown in Fig. \ref{fig:line_all_clusters}.
+
+\clearpage
+\begin{figure}[h]
+\includegraphics[keepaspectratio]{/home/eeb177-student/Desktop/eeb-177/final-proj/all_cluster_expr_lineplots.png}
+\centering
+\caption{Line plots for all eight clusters}
+\label{fig:line_all_clusters}
+\end{figure}
+\clearpage
+
+
+# Examining the expression of a specific family of genes
+
+Oftentimes it is interesting to look at a specific family of genes to see how they are potentially associated in the development of an organism. A simple way to explore this is by visualizing using a heatmap. Here I present a workflow/pipeline to achieve this, using the POU gene family as example. The POU gene family is a highly conserved family of transcription factors that contains the POU DNA-binding domain. Many genes in this gene family are critical in the development of the nervous systems and nerve nets [@Okamoto05041993, @Anderson_1995]. This gene family is found in many vertebrate and invertebrate taxa, and POU homologs are thought to have evoloved before the last common ancestor of Metazoa [@Gold_2014]. Homologs of two subclasses of POU genes, Pit1 and Brn3, have been discovered to be expressed in the sensory organs of *Aurelia* [@Nakanishi_2010]; it is unclear whether other homologs are expressed in this taxon as well. The following is a demostration of a pipeline to explore this expression of gene family in *Aurelia*.
+
+We start by searching for POU-related genes on the UniProt protein database. This is done by running the script `webscrape_swissprot.sh`:
+```{r eval=FALSE}
+#!/bin/bash/
+
+#' This bash script takes as argument a string to use as the query
+#' tothe uniprot website. It returns a tab separated file with 
+#' unique protein identifiers to be used to search within the
+#' annotated Aurelia gene models
+
+query_url="http://www.uniprot.org/uniprot/?query="
+query_url+=$1
+query_url+="+AND+reviewed:yes&sort=score&columns=id,entry%20name&format=tab"
+
+curl $query_url > ./data/uniprot-$1.txt
+echo "results stored in ./data/uniprot-$1.txt"
+```
+
+The results file `./data/uniprot-POU.txt` contains two columns; the first contains the unique SwissProt accession IDs of the genes, the second column contains the gene names and the associated organism. To proceed to the next step, we need to extract only the first column of this file; this is done by running `swissprot_id_grabber.sh`, which is a simple cut command.
+```{r eval=FALSE}
+#!/bin/bash/
+
+# This bash script takes the output of the swissprot webscraping
+# and grabs only the swissprot ID
+
+tail -n +2 $1 | cut -f 1 > accID.txt
+echo "Results stored in ./data/accID.txt"
+```
+
+Because the expression count data file identifies genes by the evm gene model numbers, we have to match the SwissProt IDs with the respective evm numbers using `search_within_trinotate.sh`; this information is stored in the file `trinotate_annotation_report.11_8_16.csv`.
+```{r eval=FALSE}
+#!/bin/bash/
+
+# This bash script will batch search within the annotated 
+# gene model file for the evm numbers
+
+query=$(cat $1 | sort -g | uniq)
+
+echo "# quarry results using source file: $1" > ./data/outfile.txt
+
+for item in $query
+	do 
+		echo $item
+		grep $item trinotate_annotation_report.11_8_16.csv | cut -d "," -f 1 >> ./data/outfile.txt
+done
+
+echo "Results stored in ./data/outfile.txt"
+
+```
+At this point, we have a file containing a list of genes identified by their evm numbers. This can then be used as input in the pipeline shown in the previous section starting with the script `Aurelia_gene_count_finder.sh`. After `replicate_averager.py` is run, one addtional optional step is to replace the evm model names by the gene names for the convenience of reading the final results. This is done by running `replace_evm.py`:
+
+```{r eval=FALSE}
+# This python script replaces gene model names in expression count files with the Swissprot annotations (if available)
+# Swissprot annotations are the top blastx hits of the gene model sequences; these are stored in the annotation.csv file
+
+# The annotation.csv file is created using the following shell pipeline:
+# cat trinotate_annotation_report.11_8_16.csv | cut -d "," -f 1,3 | sed 's/\"//g' > annotation.csv
+
+# This script requires the following files:
+# annotation.csv - contains the gene model names and top blastx Swissprot hits
+# an expression count file - contains the expression data of genes models
+
+
+import sys
+import re
+import csv
+
+with open("annotation.csv", newline = "\n") as annotations:
+    annotations.readline()
+    annotation_reader = csv.reader(annotations, delimiter = ",")
+    # create dictionary of annotations
+    model_name_list = []
+    sprot_anno_list = []
+    for row in annotation_reader:
+        model_name_list.append(row[0])
+        sprot_anno_list.append(row[1])
+    annotations_dict = {}
+    for ii in range(len(model_name_list)):
+        annotations_dict[model_name_list[ii]] = sprot_anno_list[ii]
+
+
+# In[55]:
+
+with open(sys.argv[1], newline = "\n") as count_file: # replace with sys.argv[1] later
+    header_line = count_file.readline().strip()
+    count_reader = csv.reader(count_file, delimiter='\t')
+    # pseudocode
+    # for each row in count_reader, use row[0] as key in annotations_dict to find corresponding dict value
+    # if the returning dict value is '.', do nothing, continue to next row
+    # if the returning dict value is NOT '.', replace row[0] with that dict value
+    new_row_list = []
+    for row in count_reader:
+        if annotations_dict[row[0]] != '.':
+            row[0] = annotations_dict[row[0]]
+            new_row_list.append(row)
+        else:
+            new_row_list.append(row)
+
+# What if multiple gene models Blast matched to the same Swissprot?            
+
+first_item = []  # make list of all gene model/Swissprot annotations          
+for item in new_row_list:
+    first_item.append(item[0])
+        
+        
+from collections import defaultdict
+
+def list_duplicates(list_with_dups):
+    tally = defaultdict(list)
+    for i,item in enumerate(list_with_dups):
+        tally[item].append(i)
+    dup_list = []
+    for key, index in tally.items():
+        if len(index) > 1:
+            dup_list.append(index)
+    return dup_list
+
+dup_list = list_duplicates(first_item)
+
+# for all duplicate Swissprot names, add in a number at the end to make them all different
+for item in dup_list:
+    for ii in item:
+        new_row_list[ii][0] = new_row_list[ii][0] + "({})".format(ii)            
+            
+            
+            
+            
+# Write to file            
+with open(sys.argv[1][:-4] + "_evm_replaced.csv", "a") as outfile: # replace with sys.argv[1][:-4] + "_evm_replaced.csv"
+    outfile.write("\t" + header_line + "\n")
+    writer = csv.writer(outfile, delimiter = "\t")
+    writer.writerows(new_row_list)
+
+print("Results are stored in " + sys.argv[1][:-4] + "_evm_replaced.csv")
+```
+
+## Hierarchical clustering on expression data 
+
+A commonn way to visualize the relationship between gene expressions is by constructing a heatmap based on hierarchical clustering [@Eisen_1998]. This allows one to discern similar patterns of expression in a set of genes. We can construct a heatmap of the POU genes using the `R` function `heatmap.cordist()` stored in the script `hierarchical_clustering.R`. 
+```{r eval=FALSE}
+heatmap.cordist <- function(file){
+  file_data <- read.csv(file, sep = "\t")
+
+  names(file_data) <- c("Gene", "E. Planula", "L. Planula", "Polyp",
+                        "E. Strobila", "L. Strobila", "Ephyra", "Juvenile")
+  rownames(file_data) <- file_data$Gene
+  colnames(file_data)
+  file_data <- file_data[, -1]
+
+  # sort on max difference
+  min <- apply(file_data, 1, min)
+  max <- apply(file_data, 1, max)
+  s_file_data <- file_data[order(max - min, decreasing = T), ]
+
+  cor_matrix <- cor(t(s_file_data))
+  cor_dist_matrix <- 1-cor_matrix
+  plot(cor_dist_matrix, main = "Gene expression pairwise correlation distance", 
+       xlab = "row", ylab = "column")
+  hc <- hclust(as.dist(cor_dist_matrix), method = "ward.D2")
+#  plot(hc, cex = 0.6, hang = -1)
+par(mai = c())
+# cut tree at desired height (h = 0.5)
+# gene_partition_assignments <- cutree(hc, h=0.5/100*max(hc$height))
+
+  library(gplots)
+  hp <- heatmap(as.matrix(s_file_data), Rowv = as.dendrogram(hc), 
+                Colv = NA, col = greenred(10), margins = c(6, 6), 
+                cexRow = 0.5, cexCol = 0.93)
+  return(hp)
+}
+```
+
+This function is written such that the clustering is done based on the Pearson correlations of gene expressions across the stages, rather than basing on the Euclidean distances. This is done to avoid clustering of genes by the absolute expression values, which would have the undesired effect of segregating highly expressed genes from lowly expressed genes without regard of changes in their patterns. 
 
 ```{r}
-cluster3 <- read.csv("mean_cluster3_counts.csv", sep = "\t", as.is = T)
+source("hierarchical_clustering.R")
 
-rownames(cluster3) <- cluster3$X # assign gene names to row names
-cluster3 <- cluster3[, -1] 
-
-cluster3_ratios <- cluster3 / rowSums(cluster3)
-
-library(gplots)
-heatmap.2(as.matrix(cluster3_ratios), Colv = NA, dendrogram = "row", labRow = "", trace = "none")
+heatmap.cordist("./data/mean_pou_gene_counts_evm_replaced.csv")
 
 ```
 
-Another way to visualize the data is to plot out the expression levels of each gene across all the life stages.
+# Conclusion
+I have demonstrated how DE genes from RNA-seq data could be visualized by different graphics, enabling one to gain a preliminary assessment of stage-wise expression patterns of genes in *Aurelia*. While the example data set used is specific to the species, the workflow describd above is not limited to any particular taxon, or indeed, any particular gene family. Other gene families such as the Usher Syndrome genes or genes associated with neurogenic placodes could be interesting candidates to explore.
 
-```{r}
-cluster3 <- read.csv("mean_cluster3_counts.csv", sep = "\t")
-
-# format row names
-names(cluster3) <- c("Gene", "E. Planula", "L. Planula", "Polyp",
-                     "E. Strobila", "L. Strobila", "Ephyra", "Juvenile")
-
-# reshape dataframe to "long" version
-library(reshape2)
-df <- melt(cluster3, id = c("Gene"), variable.name = "Stages")
-
-library(ggplot2)
-p1 <- ggplot(df, aes(x = Stages, y = log2(value), by = Gene)) +
-  geom_line(aes(group = Gene, color = Gene), alpha = 0.2) +
-  geom_point(alpha = 0.2, aes(color = Gene, group = Gene), size = 0.5) +
-  theme(legend.position = "none") +
-  ggtitle("Cluster 3 Genes across stages")
-p1
-```
-
-
+\clearpage
+## References
