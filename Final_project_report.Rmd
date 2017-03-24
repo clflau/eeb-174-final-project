@@ -30,8 +30,8 @@ The goal of this project is to develop a programmatic pipeline to perform some p
 
 # Graphically presenting gene expression across stages
 
-The expression counts data of all differentially expressed (DE) genes in the transcriptome is stored in the file "Aurelia_RSEM_10-18-16.TMM.EXPR.100aa.matrix". A convenient way to visualize DE gene data across life stages is to graphically present the expression levels across stages. Here I demonstrate how this can be achieved using the cluster 3 genes as an example. Previous Gene Ontology analysis done by the Jacobs Lab has shown that cluster 3 of the differentially expressed genes are enriched in "eye development" genes. To extract only the cluster 3 genes, the python script `gene_cluster_finder.py`, once executed, will prompt the user to enter the desired cluster (a number from 1 to 8), and outputs a .txt file containing a list evm gene model numbers of the genes within the desired cluster. The content of this python script is reproduced below:
-```{r, eval=FALSE, echo=TRUE}
+The expression counts data of all differentially expressed (DE) genes in the transcriptome is stored in the file "Aurelia_RSEM_10-18-16.TMM.EXPR.100aa.matrix". A convenient way to visualize DE gene data across life stages is to graphically present the expression levels across stages. Here I demonstrate how this can be achieved using the cluster 3 genes as an example. Previous Gene Ontology analysis done by the Jacobs Lab has shown that cluster 3 of the differentially expressed genes are enriched in "eye development" genes. To extract only the cluster 3 genes, the python script `gene_cluster_finder.py`, once executed, will prompt the user to enter the desired cluster (a number from 1 to 8), and outputs a .txt file containing a list of evm gene model numbers corresponding to the genes within the desired cluster. The content of this python script is reproduced below:
+```{python, eval=FALSE, echo=TRUE}
 #####
 # This script will search the file 'Cluster_IDs.txt' with input from 
 # user for a specific gene cluster, and will output the gene evm model
@@ -70,7 +70,7 @@ print("Results stored in ./data/cluster{}_genes.txt".format(str(clust_num)))
 
 Running `gene_cluster_finder.py` to capture the cluster 3 genes will return a file in the `data` folder called `cluster3_genes.txt`. The next step is to obtain the counts data for these genes; this is done by running the bash script `Aurelia_gene_count_finder.sh`:
 
-```{r eval=FALSE}
+```{bash eval=FALSE, options(width = 50)}
 #!/bin/bash/
 
 #####
@@ -95,7 +95,7 @@ echo "Results stored in ./data/$2"
 
 Since the gene expression counts data contains biological replicates for each of the life stages, a simple way to aggregate the data is by taking the average of the biological replicates for each life stage. This can be accomplished with the python script `replicate_averager.py`:
 
-```{r eval=FALSE}
+```{python eval=FALSE, options(width = 60)}
 """
 This python code will take the Aurelia expression count data 
 and calculate the average expression levels across the biological
@@ -143,10 +143,10 @@ print("Results stored in " + file_to_open[0:7] + "mean_" +
         file_to_open[7:-3] + "csv")
 ```
 
-The output of this `replicate_averager.py` is a `.csv` file containing the average per stage expression counts for each gene. At this point, the data is ready to be visualized graphically by a lineplot. This is done by loading the data into `R`. The function `lineplot_stages()` is stored in the `R` script file `lineplot_stages.R`. Because some genes are much more highly expressed than others, this function log transforms the gene count data and center the data around the gene median using the equation:
+The output of this `replicate_averager.py` is a `.csv` file containing the average per stage expression counts for each gene. At this point, the data is ready to be visualized graphically by a lineplot. This is done by loading the data into `R`. The function `lineplot_stages()` is stored in the `R` script file `lineplot_stages.R`. Because some genes are much more highly expressed than others, this function log-transforms the gene count data and centers the data around the gene median using the equation:
 
 \begin{equation}
- x_{ij, centered} = log_{2}(x_{ij} + 1) - log{2}(m_{i})
+ x_{ij, centered} = log_{2}(x_{ij} + 1) - log_{2}(m_{i})
 \end{equation}
 
 where $x_{ij}$ is the replicate-average gene count for gene $i$ at stage $j$ and $m_{i}$ is the median of the replicate-average gene count for gene $i$. Since $log_{2}(0)$ is undefined, $1$ is added to all the data before the log transformation. Since we are only interested in the relative changes of expression across the stages, this procedure does not alter the interpretations of the results. The content of `lineplot_stages()` is reproduced below:
@@ -156,7 +156,7 @@ source("lineplot_stages.R", echo = TRUE, max.deparse.length = 10000)
 
 ```
 
-Calling `lineplot_stages()` on the cluster 3 genes will produce a line plot for each of the genes. Additionally, the mean expression across stages of all the graphed genes is drawn as a black line:
+Calling `lineplot_stages()` on the cluster 3 genes will produce a line plot for each of the genes. Additionally, it will output the stages with the highest and lowest mean expression level, and the mean expression across stages of all the graphed genes will be drawn as a black line:
 ```{r}
 lineplot_stages("./data/mean_cluster3_counts.csv", "Cluster 3")
 ```
@@ -175,10 +175,10 @@ Line plots for all eight clusters are shown in Fig. \ref{fig:line_all_clusters}.
 
 # Examining the expression of a specific family of genes
 
-Oftentimes it is interesting to look at a specific family of genes to see how they are potentially associated in the development of an organism. A simple way to explore this is by visualizing using a heatmap. Here I present a workflow/pipeline to achieve this, using the POU gene family as example. The POU gene family is a highly conserved family of transcription factors that contains the POU DNA-binding domain. Many genes in this gene family are critical in the development of the nervous systems and nerve nets [@Okamoto05041993, @Anderson_1995]. This gene family is found in many vertebrate and invertebrate taxa, and POU homologs are thought to have evoloved before the last common ancestor of Metazoa [@Gold_2014]. Homologs of two subclasses of POU genes, Pit1 and Brn3, have been discovered to be expressed in the sensory organs of *Aurelia* [@Nakanishi_2010]; it is unclear whether other homologs are expressed in this taxon as well. The following is a demostration of a pipeline to explore this expression of gene family in *Aurelia*.
+Oftentimes it is interesting to look at a specific family of genes to see how they are potentially associated in the development of an organism. A simple way to explore this is by visualizing using a heatmap. Here I present a workflow/pipeline to achieve this, using the POU gene family as example. The POU gene family is a highly conserved family of transcription factors that contains the POU DNA-binding domain. Many genes in this gene family are critical in the development of the nervous systems and nerve nets [@Anderson_1995, @Okamoto_1993]. This gene family is found in many vertebrate and invertebrate taxa, and POU homologs are thought to have evoloved before the last common ancestor of Metazoa [@Gold_2014]. Homologs of two subclasses of POU genes, Pit1 and Brn3, have been discovered to be expressed in the sensory organs of *Aurelia* [@Nakanishi_2010]; it is unclear whether other homologs are expressed in this taxon as well. The following is a demostration of a pipeline to explore the expression of this gene family in *Aurelia*.
 
 We start by searching for POU-related genes on the UniProt protein database. This is done by running the script `webscrape_swissprot.sh`:
-```{r eval=FALSE}
+```{bash eval=FALSE}
 #!/bin/bash/
 
 #' This bash script takes as argument a string to use as the query
@@ -194,8 +194,8 @@ curl $query_url > ./data/uniprot-$1.txt
 echo "results stored in ./data/uniprot-$1.txt"
 ```
 
-The results file `./data/uniprot-POU.txt` contains two columns; the first contains the unique SwissProt accession IDs of the genes, the second column contains the gene names and the associated organism. To proceed to the next step, we need to extract only the first column of this file; this is done by running `swissprot_id_grabber.sh`, which is a simple cut command.
-```{r eval=FALSE}
+The results file `./data/uniprot-POU.txt` contains two columns; the first contains the unique SwissProt accession IDs of the genes, the second column contains the gene names and the associated organism. To proceed to the next step, we need to extract only the first column of this file; this is done by running `swissprot_id_grabber.sh`, which is a simple `cut` command.
+```{bash eval=FALSE}
 #!/bin/bash/
 
 # This bash script takes the output of the swissprot webscraping
@@ -206,7 +206,7 @@ echo "Results stored in ./data/accID.txt"
 ```
 
 Because the expression count data file identifies genes by the evm gene model numbers, we have to match the SwissProt IDs with the respective evm numbers using `search_within_trinotate.sh`; this information is stored in the file `trinotate_annotation_report.11_8_16.csv`.
-```{r eval=FALSE}
+```{bash eval=FALSE}
 #!/bin/bash/
 
 # This bash script will batch search within the annotated 
@@ -227,7 +227,7 @@ echo "Results stored in ./data/outfile.txt"
 ```
 At this point, we have a file containing a list of genes identified by their evm numbers. This can then be used as input in the pipeline shown in the previous section starting with the script `Aurelia_gene_count_finder.sh`. After `replicate_averager.py` is run, one addtional optional step is to replace the evm model names by the gene names for the convenience of reading the final results. This is done by running `replace_evm.py`:
 
-```{r eval=FALSE}
+```{python eval=FALSE}
 # This python script replaces gene model names in expression count files with the Swissprot annotations (if available)
 # Swissprot annotations are the top blastx hits of the gene model sequences; these are stored in the annotation.csv file
 
@@ -255,9 +255,7 @@ with open("annotation.csv", newline = "\n") as annotations:
     annotations_dict = {}
     for ii in range(len(model_name_list)):
         annotations_dict[model_name_list[ii]] = sprot_anno_list[ii]
-
-
-# In[55]:
+    
 
 with open(sys.argv[1], newline = "\n") as count_file: # replace with sys.argv[1] later
     header_line = count_file.readline().strip()
@@ -300,9 +298,6 @@ for item in dup_list:
     for ii in item:
         new_row_list[ii][0] = new_row_list[ii][0] + "({})".format(ii)            
             
-            
-            
-            
 # Write to file            
 with open(sys.argv[1][:-4] + "_evm_replaced.csv", "a") as outfile: # replace with sys.argv[1][:-4] + "_evm_replaced.csv"
     outfile.write("\t" + header_line + "\n")
@@ -335,8 +330,8 @@ heatmap.cordist <- function(file){
   plot(cor_dist_matrix, main = "Gene expression pairwise correlation distance", 
        xlab = "row", ylab = "column")
   hc <- hclust(as.dist(cor_dist_matrix), method = "ward.D2")
-#  plot(hc, cex = 0.6, hang = -1)
-par(mai = c())
+  # plot(hc, cex = 0.6, hang = -1)
+
 # cut tree at desired height (h = 0.5)
 # gene_partition_assignments <- cutree(hc, h=0.5/100*max(hc$height))
 
@@ -358,7 +353,6 @@ heatmap.cordist("./data/mean_pou_gene_counts_evm_replaced.csv")
 ```
 
 # Conclusion
-I have demonstrated how DE genes from RNA-seq data could be visualized by different graphics, enabling one to gain a preliminary assessment of stage-wise expression patterns of genes in *Aurelia*. While the example data set used is specific to the species, the workflow describd above is not limited to any particular taxon, or indeed, any particular gene family. Other gene families such as the Usher Syndrome genes or genes associated with neurogenic placodes could be interesting candidates to explore.
+I have demonstrated how DE genes from RNA-seq data could be visualized by different graphics, enabling one to gain a preliminary assessment of stage-wise expression patterns of genes in *Aurelia*. While the example data set used is specific to the species, the workflow described here could be modified slightly to look at any particular taxon or gene family. Within *Aurelia*, other gene families such as the Usher Syndrome genes or genes associated with neurogenic placodes could be interesting candidates to explore in the future.
 
-\clearpage
-## References
+# References
