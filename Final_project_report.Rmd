@@ -161,7 +161,7 @@ Calling `lineplot_stages()` on the cluster 3 genes will produce a line plot for 
 lineplot_stages("./data/mean_cluster3_counts.csv", "Cluster 3")
 ```
 
-Line plots for all eight clusters are shown in Fig. \ref{fig:line_all_clusters}.
+From this we can see that the cluster 3 genes are more highly expressed in the later stages of the jellyfish development, with the highest mean expression level at the Juvenile stage. In *Aurelia*, the eye is an organ that develops only after the polyp stage, which explains the GO enrichment of "eye development" genes in this cluster. The workflow shown here can be applied to other sets of genes; line plots for all eight clusters are shown in Fig. \ref{fig:line_all_clusters}.
 
 \clearpage
 \begin{figure}[h]
