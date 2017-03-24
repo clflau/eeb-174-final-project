@@ -1,0 +1,64 @@
+---
+title: "gene_lineplots"
+output: html_document
+---
+
+# Cluster 3 genes
+```{r}
+cluster3 <- read.csv("mean_cluster3_counts.csv", sep = "\t")
+# rownames(cluster3) <- cluster3$X
+# colnames(cluster3)
+# cluster3 <- cluster3[, -1]
+names(cluster3) <- c("Gene", "E. Planula", "L. Planula", "Polyp",
+                     "E. Strobila", "L. Strobila", "Ephyra", "Juvenile")
+# Center the data
+library(matrixStats)
+row_median_vector <- rowMedians(as.matrix(cluster3[2:8] + 1))
+cluster3_cent <- log2(cluster3[2:8] + 1) - log2(row_median_vector)
+cluster3[2:8] <- cluster3_cent
+
+# reshape dataframe to "long" version
+library(reshape2)
+df <- melt(cluster3, id = c("Gene"), variable.name = "Stages")
+
+library(ggplot2)
+p1 <- ggplot(df, aes(x = Stages, y = value, by = Gene)) +
+  geom_line(aes(group = Gene, color = Gene), alpha = 0.2) +
+  geom_point(alpha = 0.1, aes(color = Gene, group = Gene), size = 0.5) +
+  theme(legend.position = "none") +
+  ggtitle("Cluster 3 Genes across stages") +
+  ylab("Centered log2(TMM+1)")
+p1
+
+```
+
+
+# "Eye development" genes
+```{r}
+eye <- read.csv("mean_specific_counts-anno.csv", sep = "\t")
+names(eye) <- c("Gene", "E. Planula", "L. Planula", "Polyp",
+                     "E. Strobila", "L. Strobila", "Ephyra", "Juvenile")
+
+row_median_vector2 <- rowMedians(as.matrix(eye[2:8] + 1))
+eye_cent <- log2(eye[2:8] + 1) - log2(row_median_vector2)
+eye[2:8] <- eye_cent
+
+df2 <- melt(eye, id = c("Gene"), variable.name = "Stages")
+p2 <- ggplot(df2, aes(x = Stages, y = value, by = Gene)) +
+  geom_line(aes(group = Gene, color = Gene), alpha = 0.5) +
+  geom_point(alpha = 0.2, aes(color = Gene, group = Gene), size = 0.5) +
+  theme(legend.position = "bottom", legend.key.size = unit(0.3, "cm")) +
+  ggtitle("'Eye Development' Genes across stages") +
+  ylab("Centered log2(TMM+1)")
+p2
+
+# plot both graphs together
+library(gridExtra)
+grid.arrange(p1, p2, nrow = 2)
+
+
+# Save plots to pdf
+lineplots <- arrangeGrob(p1, p2, nrow =2)
+ggsave("cluster3_expr_lineplots.pdf", lineplots)
+```
+

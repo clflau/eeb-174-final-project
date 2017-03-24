@@ -1,0 +1,82 @@
+---
+title: "lineplots_all_clusters"
+author: "Clive Lau"
+date: "March 20, 2017"
+output: html_document
+---
+#### Graphing the gene expression levels of all clusters
+```{r}
+# call on function
+source("lineplot_stages.R")
+
+plots <- list()
+# Cluster 1 genes
+plots[[1]] <- lineplot_stages(file = "./data/mean_cluster1_counts.csv", "Cluster 1")
+# Cluster 2 genes
+plots[[2]] <- lineplot_stages(file = "./data/mean_cluster2_counts.csv", "Cluster 2")
+# Cluster 3 genes
+plots[[3]] <- lineplot_stages(file = "./data/mean_cluster3_counts.csv", "Cluster 3")
+# Cluster 4 genes
+plots[[4]] <- lineplot_stages(file = "./data/mean_cluster4_counts.csv", "Cluster 4")
+# Cluster 5 genes
+plots[[5]] <- lineplot_stages(file = "./data/mean_cluster5_counts.csv", "Cluster 5")
+# Cluster 6 genes
+plots[[6]] <- lineplot_stages(file = "./data/mean_cluster6_counts.csv", "Cluster 6")
+# Cluster 7 genes
+plots[[7]] <- lineplot_stages(file = "./data/mean_cluster7_counts.csv", "Cluster 7")
+# Cluster 8 genes
+plots[[8]] <- lineplot_stages(file = "./data/mean_cluster8_counts.csv", "Cluster 8")
+
+
+library(gridExtra)
+
+# save plots to pdf
+lineplots <- marrangeGrob(grobs = plots, nrow = 4, ncol = 2)
+ggsave("all_cluster_expr_lineplots.pdf", lineplots, width = 20,
+       height = 40)
+
+# save as png
+ggsave("all_cluster_expr_lineplots.png", lineplots, width = 20,
+       height = 40)
+
+```
+
+
+```{r}
+# Explore outlier genes
+
+file_data <- read.csv("mean_cluster6_counts.csv", sep = "\t")
+names(file_data) <- c("Gene", "E. Planula", "L. Planula", "Polyp",
+                       "E. Strobila", "L. Strobila", "Ephyra", "Juvenile")
+# Log transform and center the data 
+row_median_vector <- rowMedians(as.matrix(file_data[2:8] + 1))
+file_data_cent <- log2(file_data[2:8] + 1) - log2(row_median_vector)
+file_data[2:8] <- file_data_cent
+
+head(file_data)
+outlier_stage <- "L. Strobila"
+outlier_gene <- file_data[which(file_data$`L. Strobila` == pmax(file_data$`L. Strobila`)), ]
+df1 <- melt(outlier_gene, id = c("Gene"), variable.name = "Stages")
+p1 <- ggplot() +
+    geom_line(data = df1, aes(x = Stages, y = value, group = Gene, color = Gene)) +
+    geom_point(data = df1, aes(x = Stages, y = value, color = Gene, group = Gene), size = 0.5) +
+    theme(legend.position = "none") +
+    ggtitle("Genes across stages") +
+    ylab("Centered log2(TMM+1)")
+```
+
+
+```{r}
+### zooming in to dendrogram ###
+# Take correlation matrix, find a gene in it, and return the 10 most correlated genes
+
+```
+
+```{r}
+# Myosin7a
+lineplot_stages("mean_myosin7a_count.csv", "myosin7a")
+
+# Usher genes
+lineplot_stages("mean_usher_counts_evm_replaced.csv", "Usher Syndrome")
+ggsave("Usher_genes_lineplots.pdf")
+```

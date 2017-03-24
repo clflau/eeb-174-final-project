@@ -1,0 +1,12 @@
+#These are gene IDs identified as driving eye development enrichment in cluster 3
+evm.model.Seg1365.4
+evm.model.Seg1394.13
+evm.model.Seg1430.14
+evm.model.Seg1569.4
+evm.model.Seg1665.6
+evm.model.Seg2333.4
+evm.model.Seg3.11
+evm.model.Seg3121.1.1.57f48f7a
+evm.model.Seg4844.1
+evm.model.Seg918.3
+evm.model.Seg918.4

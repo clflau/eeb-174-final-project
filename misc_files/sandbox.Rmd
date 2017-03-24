@@ -1,0 +1,11 @@
+---
+title: "sandbox"
+author: "Clive Lau"
+date: "March 23, 2017"
+output: html_document
+---
+
+```{r, echo = T}
+source("lineplot_stages.R", echo = TRUE, max.deparse.length = 10000)
+
+```

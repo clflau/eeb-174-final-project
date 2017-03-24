@@ -1,8 +1,8 @@
 #!/bin/bash/
 
-# This bash script takes the output fasta file of gene search on swissprot and grabs only the swissprot ID
+# This bash script takes the output of the swissprot webscraping and grabs only the swissprot ID
 
-cat $1 | grep -F '>' | cut -d "|" -f 2 > $2.txt
+tail -n +2 $1 | cut -f 1 > ./data/accID.txt
 
-
+echo "Results stored in ./data/accID.txt"
 

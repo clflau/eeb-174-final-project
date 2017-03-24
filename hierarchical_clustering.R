@@ -19,12 +19,19 @@ heatmap.cordist <- function(file){
   plot(cor_dist_matrix, main = "Gene expression pairwise correlation distance", 
        xlab = "row", ylab = "column")
   hc <- hclust(as.dist(cor_dist_matrix), method = "ward.D2")
-  plot(as.dendrogram(hc), cex = 0.4)
-
+#  plot(hc, cex = 0.6, hang = -1)
+par(mai = c())
 # cut tree at desired height (h = 0.5)
 # gene_partition_assignments <- cutree(hc, h=0.5/100*max(hc$height))
 
   library(gplots)
-  return(heatmap(as.matrix(s_file_data), Rowv = as.dendrogram(hc), 
-                 Colv = NA, col = greenred(10)))
+  hp <- heatmap(as.matrix(s_file_data), Rowv = as.dendrogram(hc), 
+                Colv = NA, col = greenred(10), margins = c(6, 6), 
+                cexRow = 0.5, cexCol = 0.93)
+  return(hp)
 }
+
+#####################################################################
+
+
+

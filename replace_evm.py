@@ -49,9 +49,40 @@ with open(sys.argv[1], newline = "\n") as count_file: # replace with sys.argv[1]
         else:
             new_row_list.append(row)
 
+# What if multiple gene models Blast matched to the same Swissprot?            
+
+first_item = []  # make list of all gene model/Swissprot annotations          
+for item in new_row_list:
+    first_item.append(item[0])
+        
+        
+from collections import defaultdict
+
+def list_duplicates(list_with_dups):
+    tally = defaultdict(list)
+    for i,item in enumerate(list_with_dups):
+        tally[item].append(i)
+    dup_list = []
+    for key, index in tally.items():
+        if len(index) > 1:
+            dup_list.append(index)
+    return dup_list
+
+dup_list = list_duplicates(first_item)
+
+# for all duplicate Swissprot names, add in a number at the end to make them all different
+for item in dup_list:
+    for ii in item:
+        new_row_list[ii][0] = new_row_list[ii][0] + "({})".format(ii)            
+            
+            
+            
+            
+# Write to file            
 with open(sys.argv[1][:-4] + "_evm_replaced.csv", "a") as outfile: # replace with sys.argv[1][:-4] + "_evm_replaced.csv"
     outfile.write("\t" + header_line + "\n")
     writer = csv.writer(outfile, delimiter = "\t")
     writer.writerows(new_row_list)
 
+print("Results are stored in " + sys.argv[1][:-4] + "_evm_replaced.csv")
 
